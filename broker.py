@@ -3,6 +3,7 @@ import os
 import utils
 import channel as ch
 import message as msg
+import subscriber as sub
 import uvloop
 import signal
 
@@ -12,7 +13,7 @@ class Broker:
         self.channels = dict()
         self.loop = asyncio.get_event_loop()
         self.messages = asyncio.queues.Queue(loop=self.loop)
-        self.connections = []
+        # self.connections = []
 
     def get_channel(self, channel_name):
         return self.channels.setdefault(channel_name, ch.Channel(channel_name))
@@ -32,16 +33,23 @@ class Broker:
 
     async def subscribe(self, *args):
         data, writer = args
-        self.connections.append(writer)
+
+        channel_name = data.pop("channel_name")
+        channel = self.get_channel(channel_name)
+
+        subscriber = sub.Subscriber(channel)
+
+        channel.register_subscriber(subscriber, writer)
+
+    async def publisher_loop(self):
+        print("[start publisher loop]")
         while True:
-            message = await self.messages.get()
-            print(">>>", message)
-            if data.get("channel_name") == message.channel.name:
-                binary_msg = utils.s_serializer(message.body)
-                writer.write(len(binary_msg).to_bytes(2, 'big'))
-                await writer.drain()
-                writer.write(binary_msg)
-                await writer.drain()
+            try:
+                message = self.messages.get_nowait()
+                async for subscriber, writer in utils.AsyncIterable(message.channel.subscribers):
+                    await subscriber.send(message, writer)
+            except asyncio.QueueEmpty:
+                pass
             await asyncio.sleep(0.5)
 
     async def process_data(self, data, writer):
@@ -70,12 +78,16 @@ class Broker:
 
         server = asyncio.start_unix_server(self.handler, path=socket_file)
         self.loop.run_until_complete(server)
+
+        self.loop.run_until_complete(asyncio.ensure_future(self.publisher_loop(), loop=self.loop))
+
         self.loop.run_forever()
 
     async def disconnect(self):
-        async for connection in utils.AsyncIterable(self.connections):
-            connection.close()
-
-        for task in asyncio.Task.all_tasks(loop=self.loop):
-            task.cancel()
-        self.loop.stop()
+        pass
+        # async for connection in utils.AsyncIterable(self.connections):
+        #     connection.close()
+        #
+        # for task in asyncio.Task.all_tasks(loop=self.loop):
+        #     task.cancel()
+        # self.loop.stop()

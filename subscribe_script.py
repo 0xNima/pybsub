@@ -13,15 +13,15 @@ async def create_connection(action, channel_name, message):
     writer.write_eof()
 
     while True:
-        print(writer.transport)
-        # buffer = await reader.read(2)
-        # buffer_size = 0
-        # for byte in buffer:
-        #     buffer_size += byte
-        # stream = await reader.read(buffer_size)
-        # message = utils.s_deserializer(stream)
-        # print(message)
-        await asyncio.sleep(0.5)
+        # print(writer.transport)
+        buffer = await reader.read(2)
+        buffer_size = 0
+        for byte in buffer:
+            buffer_size += byte
+        stream = await reader.read(buffer_size)
+        message = utils.s_deserializer(stream)
+        print(message)
+        await asyncio.sleep(0.1)
 
 if __name__ == '__main__':
     channel_name_ = sys.argv[1]

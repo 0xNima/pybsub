@@ -117,11 +117,14 @@ def s_deserializer(byte_array):
 class AsyncIterable:
     def __init__(self, iterable):
         self.iterable = iterable
+        self.index = 0
 
     def __aiter__(self):
         return self
 
     async def __anext__(self):
-        if self.iterable:
-            return self.iterable.pop()
+        if self.index < len(self.iterable):
+            value = self.iterable[self.index]
+            self.index += 1
+            return value
         raise StopAsyncIteration
