@@ -7,10 +7,13 @@ class Channel:
         self.name = name
         self.id = uuid.uuid4().hex
         self.created_at = time.time_ns()
-        self.subscribers = list()
+        self.subscribers = dict()
 
     def register_subscriber(self, subscriber, conn):
-        self.subscribers.append((subscriber, conn))
+        self.subscribers[subscriber] = conn
+
+    def remove_subscriber(self, subscriber):
+        self.subscribers.pop(subscriber)
 
     def __repr__(self):
         return self.name

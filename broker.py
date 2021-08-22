@@ -13,7 +13,7 @@ class Broker:
         self.channels = dict()
         self.loop = asyncio.get_event_loop()
         self.messages = asyncio.queues.Queue(loop=self.loop)
-        # self.connections = []
+        self.connections = []
 
     def get_channel(self, channel_name):
         return self.channels.setdefault(channel_name, ch.Channel(channel_name))
@@ -34,6 +34,8 @@ class Broker:
     async def subscribe(self, *args):
         data, writer = args
 
+        self.connections.append(writer)
+
         channel_name = data.pop("channel_name")
         channel = self.get_channel(channel_name)
 
@@ -47,7 +49,11 @@ class Broker:
             try:
                 message = self.messages.get_nowait()
                 async for subscriber, writer in utils.AsyncIterable(message.channel.subscribers):
-                    await subscriber.send(message, writer)
+                    try:
+                        await subscriber.send(message, writer)
+                    except ConnectionResetError:
+                        message.channel.remove_subscriber(subscriber)
+
             except asyncio.QueueEmpty:
                 pass
             await asyncio.sleep(0.5)
@@ -84,10 +90,9 @@ class Broker:
         self.loop.run_forever()
 
     async def disconnect(self):
-        pass
-        # async for connection in utils.AsyncIterable(self.connections):
-        #     connection.close()
-        #
-        # for task in asyncio.Task.all_tasks(loop=self.loop):
-        #     task.cancel()
-        # self.loop.stop()
+        async for connection in utils.AsyncIterable(self.connections):
+            connection.close()
+
+        for task in asyncio.Task.all_tasks(loop=self.loop):
+            task.cancel()
+        self.loop.stop()

@@ -13,7 +13,8 @@ async def create_connection(action, channel_name, message):
     writer.write_eof()
 
     while True:
-        # print(writer.transport)
+        if reader.at_eof():
+            return
         buffer = await reader.read(2)
         buffer_size = 0
         for byte in buffer:
