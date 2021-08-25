@@ -1,5 +1,5 @@
 # pybsub
-## simple python pubsub stuff based on asyncio (and uvloop)
+## simple python pubsub stuff based on asyncio
 
 Install required packages
 ```
