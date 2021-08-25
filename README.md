@@ -19,7 +19,7 @@ python3 subscribe_script.py <channel_name>
 
 ## TODO
 - [ ] Add logging
-- [ ] Support multiple channel subscribtion
-- [ ] Publishing a message to multiple channel
+- [ ] Support multiple channels subscribtion
+- [ ] Publishing a message to multiple channels
 - [ ] Better Argument Parsing
 - [ ] Persist messages
