@@ -1,3 +1,4 @@
+from config import SOCKET_FILE_PATH
 import asyncio
 import os
 import utils
@@ -74,15 +75,14 @@ class Broker:
             self.loop.add_signal_handler(sig, lambda: asyncio.ensure_future(self.disconnect(), loop=self.loop))
 
     def run(self):
-        socket_file = "server.socket"
-        if os.path.exists(socket_file):
-            os.remove(socket_file)
+        if os.path.exists(SOCKET_FILE_PATH):
+            os.remove(SOCKET_FILE_PATH)
 
         uvloop.install()
 
         self.add_exit_handlers()
 
-        server = asyncio.start_unix_server(self.handler, path=socket_file)
+        server = asyncio.start_unix_server(self.handler, path=SOCKET_FILE_PATH)
         self.loop.run_until_complete(server)
 
         self.loop.run_until_complete(asyncio.ensure_future(self.publisher_loop(), loop=self.loop))

@@ -1,3 +1,5 @@
+from config import SOCKET_FILE_PATH
+import asyncio
 import enum
 
 
@@ -136,3 +138,33 @@ class AsyncIterable:
             if self.iterable:
                 return self.iterable.popitem()
         raise StopAsyncIteration
+
+
+async def create_sub_connection(action, channel_name, message):
+    reader, writer = await asyncio.open_unix_connection(path=SOCKET_FILE_PATH)
+    if isinstance(action, Action):
+        action = action.value
+
+    writer.write(p_serialize(action, channel_name, message))
+    await writer.drain()
+    writer.write_eof()
+
+    while True:
+        if reader.at_eof():
+            return
+        buffer = await reader.read(2)
+        buffer_size = 0
+        for byte in buffer:
+            buffer_size += byte
+        stream = await reader.read(buffer_size)
+        message = s_deserializer(stream)
+        print(message)
+        await asyncio.sleep(0.1)
+
+
+async def create_pub_connection(action, channel_name, message):
+    reader, writer = await asyncio.open_unix_connection(path=SOCKET_FILE_PATH)
+    if isinstance(action, Action):
+        action = action.value
+    writer.write(p_serialize(action, channel_name, message))
+    await writer.drain()
